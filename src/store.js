@@ -4,12 +4,13 @@ import ModuleCollection from './module/module-collection'
 import { forEachValue, isObject, isPromise, assert, partial } from './util'
 
 let Vue // bind on install
-
+// 使用之前会执行new Vuex.Store初始化Store
 export class Store {
   constructor (options = {}) {
     // Auto install if it is not done yet and `window` has `Vue`.
     // To allow users to avoid auto-installation in some cases,
     // this code should be placed here. See #731
+    // 通过script src连接的Vue会在window上注册Vue对象
     if (!Vue && typeof window !== 'undefined' && window.Vue) {
       install(window.Vue)
     }
@@ -26,11 +27,13 @@ export class Store {
     } = options
 
     // store internal state
+    // 初始化相关变量
     this._committing = false
     this._actions = Object.create(null)
     this._actionSubscribers = []
     this._mutations = Object.create(null)
     this._wrappedGetters = Object.create(null)
+    // 递归注册modules并建立父子关系
     this._modules = new ModuleCollection(options)
     this._modulesNamespaceMap = Object.create(null)
     this._subscribers = []
@@ -509,7 +512,9 @@ function unifyObjectStyle (type, payload, options) {
 
   return { type, payload, options }
 }
+  // vuex作为vue的插件使用，提供install方法来安装
 export function install (_Vue) {
+    // 单例模式，避免多次安装vuex
   if (Vue && _Vue === Vue) {
     if (process.env.NODE_ENV !== 'production') {
       console.error(

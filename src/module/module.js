@@ -1,6 +1,7 @@
 import { forEachValue } from '../util'
 
 // Base data struct for store's module, package with some attribute and method
+// options中的每一个module都调用new Module创建一个对象
 export default class Module {
   constructor (rawModule, runtime) {
     this.runtime = runtime
@@ -11,6 +12,7 @@ export default class Module {
     const rawState = rawModule.state
 
     // Store the origin module's state
+    // 注册state
     this.state = (typeof rawState === 'function' ? rawState() : rawState) || {}
   }
 
