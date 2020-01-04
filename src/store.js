@@ -59,10 +59,12 @@ export class Store {
     // init root module.
     // this also recursively registers all sub-modules
     // and collects all module getters inside this._wrappedGetters
+    // 对module进行格式化
     installModule(this, state, [], this._modules.root)
 
     // initialize the store vm, which is responsible for the reactivity
     // (also registers _wrappedGetters as computed properties)
+    // 设置getters
     resetStoreVM(this, state)
 
     // apply plugins
@@ -255,22 +257,29 @@ function resetStore (store, hot) {
   // reset vm
   resetStoreVM(store, state, hot)
 }
-
+// 设置getters，把getters作为计算属性传入，所以引用 getters的组件是响应式的
 function resetStoreVM (store, state, hot) {
+  // 保留之前的_vm
   const oldVm = store._vm
 
   // bind store public getters
+  // 我们可以调用的getters对象
   store.getters = {}
   // reset local getters cache
   store._makeLocalGettersCache = Object.create(null)
+  // 我们传入的getters被函数包装过存放在_wrappedGetters中
   const wrappedGetters = store._wrappedGetters
   const computed = {}
+  // fn是每一个函数，key是函数名
   forEachValue(wrappedGetters, (fn, key) => {
     // use computed to leverage its lazy-caching mechanism
     // direct inline function use will lead to closure preserving oldVm.
     // using partial to return function with only arguments preserved in closure environment.
+    // fn通过闭包包装一层
     computed[key] = partial(fn, store)
+    // 在getters对象上定义key名称
     Object.defineProperty(store.getters, key, {
+      // computed作为vue的计算属性传入后，可以直接通过vue[key]来获取
       get: () => store._vm[key],
       enumerable: true // for local getters
     })
@@ -281,6 +290,7 @@ function resetStoreVM (store, state, hot) {
   // some funky global mixins
   const silent = Vue.config.silent
   Vue.config.silent = true
+  // _vm初始化vue对象，把computed对象作为计算属性传入
   store._vm = new Vue({
     data: {
       $$state: state
@@ -290,10 +300,12 @@ function resetStoreVM (store, state, hot) {
   Vue.config.silent = silent
 
   // enable strict mode for new vm
+  // 开发环境可以开启严格模式
+  // 只能通过mutation提交state的更改
   if (store.strict) {
     enableStrictMode(store)
   }
-
+  // 存在oldVm，执行销毁代码
   if (oldVm) {
     if (hot) {
       // dispatch changes in all subscribed watchers
