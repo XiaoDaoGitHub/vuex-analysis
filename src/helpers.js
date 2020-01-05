@@ -6,16 +6,22 @@ import { isObject } from './util'
  * @param {Object|Array} states # Object's item can be a function which accept state and getters for param, you can do something for state and getters in it.
  * @param {Object}
  */
+// 通过normalizeNamespace构建一层处理层
 export const mapState = normalizeNamespace((namespace, states) => {
   const res = {}
   if (process.env.NODE_ENV !== 'production' && !isValidMap(states)) {
     console.error('[vuex] mapState: mapper parameter must be either an Array or an Object')
   }
+  // normalizeMap格式化states
   normalizeMap(states).forEach(({ key, val }) => {
+    // 由于mapState是在计算属性中使用的，所以通过res[key]:fn来构建对应key的计算属性函数
     res[key] = function mappedState () {
+      // mapState只是语法糖，事实还是通过$store来访问对应的state和getters
       let state = this.$store.state
       let getters = this.$store.getters
+      // 如果访问的是命名空间的话，需要通过命名空间访问对应的属性
       if (namespace) {
+        // 通过命名空间查找对应的module
         const module = getModuleByNamespace(this.$store, 'mapState', namespace)
         if (!module) {
           return
@@ -23,6 +29,7 @@ export const mapState = normalizeNamespace((namespace, states) => {
         state = module.context.state
         getters = module.context.getters
       }
+      // mapState的val可以是函数
       return typeof val === 'function'
         ? val.call(this, state, getters)
         : state[val]
@@ -44,10 +51,12 @@ export const mapMutations = normalizeNamespace((namespace, mutations) => {
   if (process.env.NODE_ENV !== 'production' && !isValidMap(mutations)) {
     console.error('[vuex] mapMutations: mapper parameter must be either an Array or an Object')
   }
+ // 对mutations进行格式化构建为key，val对象数组
   normalizeMap(mutations).forEach(({ key, val }) => {
     res[key] = function mappedMutation (...args) {
       // Get the commit method from store
       let commit = this.$store.commit
+      // 通过命名空间查找对应的module
       if (namespace) {
         const module = getModuleByNamespace(this.$store, 'mapMutations', namespace)
         if (!module) {
@@ -55,6 +64,7 @@ export const mapMutations = normalizeNamespace((namespace, mutations) => {
         }
         commit = module.context.commit
       }
+      // val也可以是一个对象
       return typeof val === 'function'
         ? val.apply(this, [commit].concat(args))
         : commit.apply(this.$store, [val].concat(args))
@@ -69,13 +79,16 @@ export const mapMutations = normalizeNamespace((namespace, mutations) => {
  * @param {Object|Array} getters
  * @return {Object}
  */
+// 通过normalizeNamespace构建一层处理层
 export const mapGetters = normalizeNamespace((namespace, getters) => {
   const res = {}
   if (process.env.NODE_ENV !== 'production' && !isValidMap(getters)) {
     console.error('[vuex] mapGetters: mapper parameter must be either an Array or an Object')
   }
+  // 对getters进行格式化构建为key，val对象数组
   normalizeMap(getters).forEach(({ key, val }) => {
     // The namespace has been mutated by normalizeNamespace
+    // 拼接val的命名空间
     val = namespace + val
     res[key] = function mappedGetter () {
       if (namespace && !getModuleByNamespace(this.$store, 'mapGetters', namespace)) {
@@ -85,6 +98,7 @@ export const mapGetters = normalizeNamespace((namespace, getters) => {
         console.error(`[vuex] unknown getter: ${val}`)
         return
       }
+      // 通过命名空间获取对应的getters
       return this.$store.getters[val]
     }
     // mark vuex getter for devtools
@@ -104,10 +118,12 @@ export const mapActions = normalizeNamespace((namespace, actions) => {
   if (process.env.NODE_ENV !== 'production' && !isValidMap(actions)) {
     console.error('[vuex] mapActions: mapper parameter must be either an Array or an Object')
   }
+    // 对actions进行格式化构建为key，val对象数组
   normalizeMap(actions).forEach(({ key, val }) => {
     res[key] = function mappedAction (...args) {
       // get dispatch function from store
       let dispatch = this.$store.dispatch
+      //  通过命名空间获取对应的module
       if (namespace) {
         const module = getModuleByNamespace(this.$store, 'mapActions', namespace)
         if (!module) {
@@ -143,9 +159,11 @@ export const createNamespacedHelpers = (namespace) => ({
  * @return {Object}
  */
 function normalizeMap (map) {
+  // map必须是数组或对象
   if (!isValidMap(map)) {
     return []
   }
+  // 把数组和对象都格式化为key，val的格式
   return Array.isArray(map)
     ? map.map(key => ({ key, val: key }))
     : Object.keys(map).map(key => ({ key, val: map[key] }))
@@ -166,10 +184,14 @@ function isValidMap (map) {
  * @return {Function}
  */
 function normalizeNamespace (fn) {
+  // 返回的函数才是我们通过mapState/getter引入的函数
   return (namespace, map) => {
+    // namespace不是字符串，也就是对象/数组格式
+    // 此时namespace指向根module
     if (typeof namespace !== 'string') {
       map = namespace
       namespace = ''
+    // 字符串的话表示命名空间，需要拼接/
     } else if (namespace.charAt(namespace.length - 1) !== '/') {
       namespace += '/'
     }
@@ -185,6 +207,7 @@ function normalizeNamespace (fn) {
  * @return {Object}
  */
 function getModuleByNamespace (store, helper, namespace) {
+  // 通过命名空间查找对应的module
   const module = store._modulesNamespaceMap[namespace]
   if (process.env.NODE_ENV !== 'production' && !module) {
     console.error(`[vuex] module namespace not found in ${helper}(): ${namespace}`)
