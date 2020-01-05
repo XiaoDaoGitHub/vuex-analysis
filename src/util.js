@@ -21,11 +21,13 @@ export function find (list, f) {
  */
 export function deepCopy (obj, cache = []) {
   // just return if obj is immutable value
+  // 非对象直接返回
   if (obj === null || typeof obj !== 'object') {
     return obj
   }
 
   // if obj is hit, it is in circular structure
+  // 每次都缓存对象，进行环检测
   const hit = find(cache, c => c.original === obj)
   if (hit) {
     return hit.copy
@@ -38,7 +40,7 @@ export function deepCopy (obj, cache = []) {
     original: obj,
     copy
   })
-
+  // 对对象的每一项都进行递归复制
   Object.keys(obj).forEach(key => {
     copy[key] = deepCopy(obj[key], cache)
   })

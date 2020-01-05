@@ -68,6 +68,7 @@ export class Store {
     resetStoreVM(this, state)
 
     // apply plugins
+    // 注册插件
     plugins.forEach(plugin => plugin(this))
 
     const useDevtools = options.devtools !== undefined ? options.devtools : Vue.config.devtools
