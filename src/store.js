@@ -75,7 +75,8 @@ export class Store {
       devtoolPlugin(this)
     }
   }
-
+  // _vm是vue实例
+  // $$state是在resetStoreVM里面对把state作为初始化的optins传入vue中
   get state () {
     return this._vm._data.$$state
   }
@@ -92,22 +93,26 @@ export class Store {
       type,
       payload,
       options
+      // 对参数进行格式化
     } = unifyObjectStyle(_type, _payload, _options)
 
     const mutation = { type, payload }
+    // 在new vuex.store的时候，_mutations会作为存放所有的mutations
     const entry = this._mutations[type]
+    // 没有找到说明可能拼写错误或者没有定义mutation
     if (!entry) {
       if (process.env.NODE_ENV !== 'production') {
         console.error(`[vuex] unknown mutation type: ${type}`)
       }
       return
     }
+    // _withCommit是一个同步方法，会设置commiting为true，保证mutation是通过commit提交的
     this._withCommit(() => {
       entry.forEach(function commitIterator (handler) {
         handler(payload)
       })
     })
-
+    // 指向对当前mutation的订阅者
     this._subscribers
       .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously calls unsubscribe
       .forEach(sub => sub(mutation, this.state))
@@ -128,9 +133,11 @@ export class Store {
     const {
       type,
       payload
+      // 对参数进行格式化
     } = unifyObjectStyle(_type, _payload)
 
     const action = { type, payload }
+    // 所有actino都注册在_actions中
     const entry = this._actions[type]
     if (!entry) {
       if (process.env.NODE_ENV !== 'production') {
@@ -138,7 +145,7 @@ export class Store {
       }
       return
     }
-
+    // 执行action的订阅前执行函数
     try {
       this._actionSubscribers
         .slice() // shallow copy to prevent iterator invalidation if subscriber synchronously calls unsubscribe
@@ -152,10 +159,12 @@ export class Store {
     }
 
     const result = entry.length > 1
+      // 多个action调用promise.all方法
       ? Promise.all(entry.map(handler => handler(payload)))
       : entry[0](payload)
-
+    // 执行完成返回promise对象
     return result.then(res => {
+      // 执行action的订阅完成后函数
       try {
         this._actionSubscribers
           .filter(sub => sub.after)
